@@ -1,4 +1,4 @@
-use new_lab3
+use db_4
 go
 
 if exists (select * from dbo.sysobjects where id = object_id(N'[FK_TestRunTables_Tables]') and OBJECTPROPERTY(id, N'IsForeignKey') = 1)
@@ -249,7 +249,7 @@ GO
 -- Table with a multicolumn primary key: Sponsorship
 
 -- view with a SELECT statement operating on one table: view on gym
-CREATE OR ALTER VIEW ViewOnOneTable
+CREATE OR ALTER VIEW view_on_one_table
 AS
 	SELECT G.name
 	FROM gym G
@@ -257,7 +257,7 @@ AS
 GO
 
 -- view with a SELECT statement operating on at least 2 tables: view on gym and coach
-CREATE OR ALTER VIEW ViewOnMinTwoTables -- coaches and subscription prices of the gyms they work at
+CREATE OR ALTER VIEW view_on_min_two_tables -- coaches and subscription prices of the gyms they work at
 AS
 	SELECT C.name, G.subscription_price
 	FROM coach C
@@ -266,9 +266,9 @@ AS
 GO
 
 -- view with a SELECT statement that has GROUP BY clause and operates on at least 2 tables
-CREATE OR ALTER VIEW ViewGroupBy -- coaches and gyms
+CREATE OR ALTER VIEW view_group_by -- coaches and gyms
 AS
-	SELECT TOP 3 C.name, C.salary, G.name, G.subscription_price
+	SELECT TOP 3 C.name, C.salary, G.subscription_price
 	FROM coach C
 	INNER JOIN gym G
 	ON C.gym_id = G.gym_id
@@ -328,12 +328,12 @@ VALUES (1, 1),
 	   (5, 3)
 
 GO
-CREATE OR ALTER PROCEDURE deleteData (@table VARCHAR(30))
+CREATE OR ALTER PROCEDURE deleteData (@table VARCHAR(50))
 AS
 BEGIN
 	IF EXISTS (
         SELECT * 
-        FROM PowerliftingCompDB.sys.tables 
+        FROM db_4.sys.tables 
         WHERE tables.name IN ('Sponsor', 'Chef', 'Sponsorship') AND tables.name = @table
     )
 	BEGIN
@@ -349,10 +349,10 @@ BEGIN
 END
 
 GO
-CREATE OR ALTER PROCEDURE evaluateView (@view VARCHAR(30))
+CREATE OR ALTER PROCEDURE evaluateView (@view VARCHAR(50))
 AS
 BEGIN
-	IF EXISTS (SELECT * FROM PowerliftingCompDB.sys.views WHERE views.name = @view)
+	IF EXISTS (SELECT * FROM db_4.sys.views WHERE views.name = @view)
 	BEGIN
 		DECLARE @executeView NVARCHAR(100)
 		SET @executeView = N'SELECT * FROM ' + @view
@@ -367,7 +367,7 @@ END
 
 
 GO
-CREATE OR ALTER PROCEDURE insertData (@tableName VARCHAR(30), @nrOfRows INTEGER)
+CREATE OR ALTER PROCEDURE insertData (@tableName VARCHAR(50), @nrOfRows INTEGER)
 AS
 BEGIN
 	DECLARE @initialNrOfRows INTEGER
@@ -375,12 +375,11 @@ BEGIN
     -- sponsor
 	IF @tableName = 'Sponsor'
 	BEGIN
-		DECLARE @sponsor_name VARCHAR(100)
-		DECLARE @sponsor_id INTEGER
+		DECLARE @sponsor_name VARCHAR(50)
 
 		WHILE @nrOfRows > 0
 		BEGIN
-			SET @sponsor_name = CONVERT(VARCHAR(100), NEWID())
+			SET @sponsor_name = CONVERT(VARCHAR(50), NEWID())
 
 			INSERT INTO Sponsor(name)
 			VALUES (@sponsor_name)
@@ -395,32 +394,33 @@ BEGIN
 		DECLARE @chef_id INTEGER
 		DECLARE @food_supplier_id INTEGER
 		DECLARE @salary INTEGER
-        DECLARE @chef_name VARCHAR(100)
-        DECLARE @nationality VARCHAR(100)
+        DECLARE @chef_name VARCHAR(50)
+        DECLARE @nationality VARCHAR(50)
 
         -- food_supplier props
 		DECLARE @FS_id INTEGER
-		DECLARE @FS_name VARCHAR(100)
+		DECLARE @FS_name VARCHAR(50)
 		DECLARE @delivery_price INTEGER
         DECLARE @average_pricing INTEGER
 
 		WHILE @nrOfRows > 0
 		BEGIN
-			SET @FS_name = CONVERT(VARCHAR(100), NEWID())
+			SET @FS_name = CONVERT(VARCHAR(50), NEWID())
 			SET @delivery_price = ABS(CHECKSUM(NEWID())) % 35 + 20
             SET @average_pricing = ABS(CHECKSUM(NEWID())) % 35 + 20
 
 			INSERT INTO food_supplier(name, delivery_price, average_pricing)
 			VALUES (@FS_name, @delivery_price, @average_pricing)
 
-			SET @food_supplier_id = (
-                SELECT food_supplier_id 
-                FROM food_supplier 
-                WHERE food_supplier_id = @initialNrOfRows - @nrOfRows + 1
-            )
+			-- SET @food_supplier_id = (
+            --     SELECT food_supplier_id 
+            --     FROM food_supplier 
+            --     WHERE food_supplier_id = @initialNrOfRows - @nrOfRows + 1
+            -- )
+			SET @food_supplier_id = ABS(CHECKSUM(NEWID())) % 4000
 			SET @salary = ABS(CHECKSUM(NEWID())) % 35 + 20
-            SET @chef_name = CONVERT(VARCHAR(100), NEWID())
-            SET @nationality = CONVERT(VARCHAR(100), NEWID())
+            SET @chef_name = CONVERT(VARCHAR(50), NEWID())
+            SET @nationality = CONVERT(VARCHAR(50), NEWID())
 
 			INSERT INTO chef(food_supplier_id, chef_name, nationality, salary)
 			VALUES (@food_supplier_id, @chef_name, @nationality, @salary)
@@ -437,8 +437,11 @@ BEGIN
 
 		WHILE @nrOfRows > 0
 		BEGIN
-			SET @sponsor_id = (SELECT TOP 1 sponsor_id FROM sponsor)
-			SET @competition_id = (SELECT TOP 1 competition_id FROM competition)
+			-- SET @sponsor_id = (SELECT TOP 1 sponsor_id FROM sponsor)
+			-- SET @competition_id = (SELECT TOP 1 competition_id FROM competition)
+
+			SET @sponsor_id = ABS(CHECKSUM(NEWID())) % 4000
+			SET @competition_id = ABS(CHECKSUM(NEWID())) % 4000
             SET @budget = ABS(CHECKSUM(NEWID())) % 35 + 20
 
 			INSERT INTO sponsorship(sponsor_id, competition_id, budget)
@@ -461,8 +464,8 @@ BEGIN
 	DECLARE @testRunID INT
 	DECLARE @viewID INT
     DECLARE @tableID INT
-    DECLARE @tableName VARCHAR(30)
-	DECLARE @viewName VARCHAR(30)
+    DECLARE @tableName VARCHAR(50)
+	DECLARE @viewName VARCHAR(50)
     DECLARE @nrOfRows INT
 	DECLARE @startTime DATETIME
 	DECLARE @endTime DATETIME
@@ -496,7 +499,7 @@ BEGIN
         WHILE @@FETCH_STATUS = 0
         BEGIN	
             SET @tableName = (SELECT Name FROM Tables WHERE TableID = @tableID)
-            EXEC deleteData @tableName
+            EXEC deleteData @tableName -------- delete
             FETCH NEXT
                 FROM deleteCursor
                 INTO @tableID
@@ -522,7 +525,7 @@ BEGIN
         BEGIN
             SET @tableName = (SELECT Name from Tables WHERE TableID = @tableID)
             SET @startTime = GETDATE()
-            EXEC insertData @tableName, @nrOfRows
+            EXEC insertData @tableName, @nrOfRows -------- insert
             SET @endTime = GETDATE()
             INSERT INTO TestRunTables VALUES (@testRunID, @tableID, @startTime, @endTime)
             FETCH NEXT
@@ -549,7 +552,7 @@ BEGIN
         BEGIN
             SET @viewName = (SELECT Name FROM Views WHERE ViewID = @viewID)
             SET @startTime = GETDATE()
-            EXEC evaluateView @viewName
+            EXEC evaluateView @viewName  -------- view
             SET @endTime = GETDATE()
             INSERT INTO TestRunViews VALUES (@testRunID, @viewID, @startTime, @endTime)
             FETCH NEXT
@@ -566,3 +569,36 @@ BEGIN
 
 	PRINT 'TestRuns is now updated!'
 END
+
+EXEC mainTest 3
+
+GO
+CREATE OR ALTER PROCEDURE runAllTests
+AS
+BEGIN 
+	DECLARE @testIndex INT 
+	DECLARE mainCursor CURSOR FOR
+		SELECT testID 
+		FROM Tests
+	OPEN mainCursor
+	FETCH mainCursor INTO @testIndex 
+	WHILE @@FETCH_STATUS = 0
+	BEGIN 
+		EXEC mainTest @testIndex
+		FETCH NEXT 
+			FROM mainCursor 
+			INTO @testIndex
+	END 
+	CLOSE mainCursor
+	DEALLOCATE mainCursor
+END
+
+EXEC runAllTests
+
+SELECT * FROM Tests
+SELECT * FROM TestRuns
+SELECT * FROM TestRunTables
+SELECT * FROM TestRunViews
+
+SELECT * FROM Sponsor
+SELECT * FROM sponsorship
